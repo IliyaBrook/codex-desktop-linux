@@ -1,3 +1,4 @@
 *.dmg
+.idea
 node_modules/
 codex-app/
