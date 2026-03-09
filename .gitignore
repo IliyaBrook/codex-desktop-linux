@@ -1,4 +1,7 @@
 *.dmg
+*.AppImage
+Codex-*.AppImage
 .idea
 node_modules/
 codex-app/
+tmp/
