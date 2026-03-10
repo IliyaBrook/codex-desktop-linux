@@ -233,7 +233,29 @@ if [ -d "$WEBVIEW_DIR" ] && [ "$(ls -A "$WEBVIEW_DIR" 2>/dev/null)" ]; then
     trap "kill $HTTP_PID 2>/dev/null" EXIT
 fi
 
-export CODEX_CLI_PATH="${CODEX_CLI_PATH:-$(which codex 2>/dev/null)}"
+find_codex_cli() {
+    if [[ -n ${CODEX_CLI_PATH:-} ]] && [[ -x ${CODEX_CLI_PATH} ]]; then
+        echo "$CODEX_CLI_PATH"
+        return
+    fi
+    if command -v codex >/dev/null 2>&1; then
+        command -v codex
+        return
+    fi
+    local c
+    for c in "$HOME/.nvm/versions/node/"*/bin/codex \
+             "$HOME/.local/bin/codex" \
+             "/usr/local/bin/codex" \
+             "/usr/bin/codex"; do
+        if [[ -x $c ]]; then
+            echo "$c"
+            return
+        fi
+    done
+    echo ""
+}
+
+export CODEX_CLI_PATH="$(find_codex_cli)"
 
 if [ -z "$CODEX_CLI_PATH" ]; then
     echo "Error: Codex CLI not found. Install with: npm i -g @openai/codex"

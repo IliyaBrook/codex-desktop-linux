@@ -62,11 +62,11 @@ integrate_desktop() {
 
   local current_exec=''
   [[ -f $desktop_file ]] && current_exec=$(grep '^Exec=' "$desktop_file" 2>/dev/null | head -1)
-  if [[ ! -f $desktop_file ]] || [[ $current_exec != "Exec=\"${appimage_path}\" %U" ]]; then
+  if [[ ! -f $desktop_file ]] || [[ $current_exec != "Exec=env CODEX_CLI_PATH=${CODEX_CLI_PATH:-} \"${appimage_path}\" %U" ]]; then
     cat > "$desktop_file" << DESKTOP
 [Desktop Entry]
 Name=Codex
-Exec="${appimage_path}" %U
+Exec=env CODEX_CLI_PATH=${CODEX_CLI_PATH:-} "${appimage_path}" %U
 Icon=codex
 Type=Application
 Terminal=false
@@ -77,6 +77,37 @@ DESKTOP
 
   update-desktop-database "$desktop_dir" 2>/dev/null || true
 }
+
+find_codex_cli() {
+  if [[ -n ${CODEX_CLI_PATH:-} ]] && [[ -x ${CODEX_CLI_PATH} ]]; then
+    echo "$CODEX_CLI_PATH"
+    return
+  fi
+
+  if command -v codex >/dev/null 2>&1; then
+    command -v codex
+    return
+  fi
+
+  local candidates=(
+    "$HOME/.nvm/versions/node/"*/bin/codex
+    "$HOME/.local/bin/codex"
+    "/usr/local/bin/codex"
+    "/usr/bin/codex"
+  )
+
+  local c
+  for c in "${candidates[@]}"; do
+    if [[ -x $c ]]; then
+      echo "$c"
+      return
+    fi
+  done
+
+  echo ""
+}
+
+export CODEX_CLI_PATH="${CODEX_CLI_PATH:-$(find_codex_cli)}"
 
 integrate_desktop
 
