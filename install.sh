@@ -278,8 +278,39 @@ install_app() {
 create_start_script() {
     cat > "$INSTALL_DIR/start.sh" << 'SCRIPT'
 #!/bin/bash
+set -euo pipefail
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WEBVIEW_DIR="$SCRIPT_DIR/content/webview"
+
+detect_display_backend() {
+    local xdg_session="${XDG_SESSION_TYPE:-}"
+    if [[ "$xdg_session" == "wayland" ]] || [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
+        echo "wayland"
+        return
+    fi
+    echo "x11"
+}
+
+build_electron_args() {
+    local backend="$1"
+    local args=("--no-sandbox" "--disable-features=CustomTitlebar")
+
+    export ELECTRON_USE_SYSTEM_TITLE_BAR=1
+
+    if [[ "$backend" == "wayland" ]]; then
+        if [[ "${CODEX_USE_WAYLAND:-0}" == "1" ]]; then
+            args+=("--enable-features=UseOzonePlatform,WaylandWindowDecorations")
+            args+=("--ozone-platform=wayland")
+            args+=("--enable-wayland-ime")
+            args+=("--wayland-text-input-version=3")
+        else
+            args+=("--ozone-platform=x11")
+        fi
+    fi
+
+    printf '%s\n' "${args[@]}"
+}
 
 pkill -f "http.server 5175" 2>/dev/null
 sleep 0.3
@@ -320,8 +351,11 @@ if [ -z "$CODEX_CLI_PATH" ]; then
     exit 1
 fi
 
+display_backend="$(detect_display_backend)"
+mapfile -t electron_args < <(build_electron_args "$display_backend")
+
 cd "$SCRIPT_DIR"
-exec "$SCRIPT_DIR/electron" --no-sandbox "$@"
+exec "$SCRIPT_DIR/electron" "${electron_args[@]}" "$@"
 SCRIPT
 
     chmod +x "$INSTALL_DIR/start.sh"

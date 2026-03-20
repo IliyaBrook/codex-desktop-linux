@@ -79,6 +79,13 @@ Or add an alias to your shell:
 echo 'alias codex-desktop="~/codex-desktop-linux/codex-app/start.sh"' >> ~/.bashrc
 ```
 
+On Wayland, the launcher now uses XWayland by default for better Electron window stability.
+If you want to force native Wayland instead, run:
+
+```bash
+CODEX_USE_WAYLAND=1 ./codex-app/start.sh
+```
+
 ### Custom install directory
 
 ```bash
@@ -104,6 +111,7 @@ A small Python HTTP server is used as a workaround: when `app.isPackaged` is `fa
 | Blank window | Check that port 5175 is not in use: `lsof -i :5175` |
 | `CODEX_CLI_PATH` error | Install CLI: `npm i -g @openai/codex` |
 | GPU/rendering issues | Try: `./codex-app/start.sh --disable-gpu` |
+| Wayland fullscreen/window move artifacts | Default launcher uses XWayland fallback; try plain `./codex-app/start.sh`. To test native Wayland explicitly: `CODEX_USE_WAYLAND=1 ./codex-app/start.sh` |
 | Sandbox errors | The `--no-sandbox` flag is already set in `start.sh` |
 
 ## Disclaimer
