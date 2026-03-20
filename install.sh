@@ -21,6 +21,64 @@ info()  { echo -e "${GREEN}[INFO]${NC} $*" >&2; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $*" >&2; }
 error() { echo -e "${RED}[ERROR]${NC} $*" >&2; exit 1; }
 
+detect_package_manager() {
+    if command -v apt-get &>/dev/null; then
+        echo "apt"
+        return
+    fi
+    if command -v dnf &>/dev/null; then
+        echo "dnf"
+        return
+    fi
+    if command -v pacman &>/dev/null; then
+        echo "pacman"
+        return
+    fi
+    echo "unknown"
+}
+
+deps_install_command() {
+    case "$(detect_package_manager)" in
+        apt)
+            echo "sudo apt install nodejs npm python3 p7zip-full curl unzip build-essential"
+            ;;
+        dnf)
+            echo "sudo dnf install nodejs npm python3 p7zip p7zip-plugins curl unzip gcc-c++ make"
+            ;;
+        pacman)
+            echo "sudo pacman -S nodejs npm python p7zip curl unzip base-devel"
+            ;;
+        *)
+            cat <<'EOF'
+sudo apt install nodejs npm python3 p7zip-full curl unzip build-essential   # Debian/Ubuntu
+sudo dnf install nodejs npm python3 p7zip p7zip-plugins curl unzip gcc-c++ make   # Fedora
+sudo pacman -S nodejs npm python p7zip curl unzip base-devel   # Arch
+EOF
+            ;;
+    esac
+}
+
+build_tools_install_command() {
+    case "$(detect_package_manager)" in
+        apt)
+            echo "sudo apt install build-essential"
+            ;;
+        dnf)
+            echo "sudo dnf install gcc-c++ make"
+            ;;
+        pacman)
+            echo "sudo pacman -S base-devel"
+            ;;
+        *)
+            cat <<'EOF'
+sudo apt install build-essential   # Debian/Ubuntu
+sudo dnf install gcc-c++ make   # Fedora
+sudo pacman -S base-devel   # Arch
+EOF
+            ;;
+    esac
+}
+
 cleanup() {
     rm -rf "$WORK_DIR"
 }
@@ -34,11 +92,11 @@ check_deps() {
         command -v "$cmd" &>/dev/null || missing+=("$cmd")
     done
     if [ ${#missing[@]} -ne 0 ]; then
+        local install_cmd
+        install_cmd="$(deps_install_command)"
         error "Missing dependencies: ${missing[*]}
 Install them first:
-  sudo apt install nodejs npm python3 p7zip-full curl unzip build-essential  # Debian/Ubuntu
-  sudo dnf install nodejs npm python3 p7zip curl unzip && sudo dnf groupinstall 'Development Tools'  # Fedora
-  sudo pacman -S nodejs npm python p7zip curl unzip base-devel  # Arch"
+  $install_cmd"
     fi
 
     NODE_MAJOR=$(node -v | cut -d. -f1 | tr -d v)
@@ -47,10 +105,10 @@ Install them first:
     fi
 
     if ! command -v make &>/dev/null || ! command -v g++ &>/dev/null; then
+        local build_tools_cmd
+        build_tools_cmd="$(build_tools_install_command)"
         error "Build tools (make, g++) required:
-  sudo apt install build-essential   # Debian/Ubuntu
-  sudo dnf groupinstall 'Development Tools'  # Fedora
-  sudo pacman -S base-devel          # Arch"
+  $build_tools_cmd"
     fi
 
     info "All dependencies found"

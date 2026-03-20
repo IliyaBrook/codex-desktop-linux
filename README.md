@@ -55,6 +55,8 @@ chmod +x install.sh
 ./install.sh
 ```
 
+The installer auto-detects the available package manager and prints the matching dependency command for `apt`, `dnf`, or `pacman` if something is missing.
+
 ### Option B: Provide your own DMG
 
 Download `Codex.dmg` from [openai.com/codex](https://openai.com/codex/), then:
